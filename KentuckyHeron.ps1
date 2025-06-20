@@ -2,15 +2,6 @@
 #
 # This script automates the installation of common applications and configures
 # pGina for authentication against a FreeIPA LDAP server.
-#
-# INSTRUCTIONS:
-# 1. Right-click the Start button and select "Windows PowerShell (Admin)" or "Terminal (Admin)".
-# 2. Run the script by pasting its content or by executing the .ps1 file.
-#    Example: C:\Users\Logan\Desktop\setup.ps1
-#
-# NOTE: This script will install Chocolatey, a package manager for Windows.
-
-# --- 1. Check for Administrator Privileges ---
 Write-Host "Checking for Administrator privileges..."
 if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     Write-Warning "This script must be run as Administrator. Please re-run from an elevated PowerShell terminal."
@@ -18,7 +9,6 @@ if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     exit
 }
 
-# --- 2. Install Chocolatey Package Manager ---
 Write-Host "Checking for Chocolatey package manager..."
 if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
     Write-Host "Chocolatey not found. Installing..."
@@ -27,8 +17,6 @@ if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
     Write-Host "Chocolatey is already installed."
 }
 
-# --- 3. Install Applications using Chocolatey ---
-# This section will install all the software you requested.
 Write-Host "Installing requested applications. This may take a considerable amount of time."
 
 $packages = @(
@@ -59,35 +47,26 @@ foreach ($pkg in $packages) {
 
 Write-Host "Application installation complete."
 
-# --- 4. Configure pGina ---
-# This section configures pGina to use your FreeIPA LDAP server.
-# It works by directly modifying the Windows Registry.
-
 Write-Host "Configuring pGina to connect to ldap.loganbrown.cc..."
 
-# Define pGina Registry Paths
 $pginaBaseReg = "HKLM:\SOFTWARE\pGina3"
-# The LDAP plugin has a static GUID
+
 $ldapPluginReg = "$pginaBaseReg\Plugins\{B4E383A6-2239-4448-A583-3475AC242340}"
 
-# Ensure the base pGina key exists before proceeding
 if (-not (Test-Path $pginaBaseReg)) {
     Write-Error "pGina registry key not found. Configuration cannot proceed. Was pGina installed correctly?"
     Read-Host "Press Enter to exit..."
     exit
 }
 
-# Set the plugin order to use LDAP for Authentication and Authorization
 Set-ItemProperty -Path $pginaBaseReg -Name "PluginOrder_Authentication" -Value @("{B4E383A6-2239-4448-A583-3475AC242340}") -Type MultiString
 Set-ItemProperty -Path $pginaBaseReg -Name "PluginOrder_Authorization" -Value @("{B4E383A6-2239-4448-A583-3475AC242340}") -Type MultiString
 Set-ItemProperty -Path $pginaBaseReg -Name "PluginOrder_Gateway" -Value @("{B4E383A6-2239-4448-A583-3475AC242340}") -Type MultiString
 
-# Create the LDAP plugin key if it doesn't exist
 if (-not (Test-Path $ldapPluginReg)) {
     New-Item -Path $ldapPluginReg -Force
 }
 
-# Set the LDAP plugin configuration values
 Write-Host "Setting LDAP connection details..."
 Set-ItemProperty -Path $ldapPluginReg -Name "LdapHost" -Value "ldap.loganbrown.cc"
 Set-ItemProperty -Path $ldapPluginReg -Name "LdapPort" -Value 389
